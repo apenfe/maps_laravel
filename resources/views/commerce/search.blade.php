@@ -358,7 +358,72 @@
                     })
                     .then(response => response.json())
                         .then(data => {
-                            console.log(data);
+
+                            if(!data.length){
+                                $results.innerHTML = 'No se han encontrado resultados';
+                                $summary.innerHTML = '0 resultados';
+                                map.setView([lat, lng], initialZoom);
+                                return;
+                            }
+
+                            $summary.innerHTML = `${data.length} resultados`;
+                            $results.innerHTML = '';
+
+                            // añadir markers
+                            const markers = L.featureGroup();
+
+                            const group = $c('div');
+                            group.classList.add('list-group');
+                            data.forEach(commerce => {
+                                const item = $c('div');
+                                item.classList.add('list-group-item', 'list-group-item-action', 'm-0', 'p-0');
+
+                                const marker = addMarker(commerce);
+                                markers.addLayer(marker);
+
+                                const titleContainer = $c('div');
+                                titleContainer.classList.add('d-flex', 'w-100', 'justify-content-between', 'bg-light', 'rounded', 'p-2', 'mb-2');
+
+                                const icon = $c('i');
+                                icon.classList.add(...icons[commerce.type].split(' '), 'me-2');
+
+                                const title = $c('h5');
+                                title.classList.add('mb-1');
+                                title.innerText = commerce.name;
+                                title.prepend(icon);
+                                titleContainer.appendChild(title);
+
+                                const distance = $c('small');
+                                distance.innerText = `${commerce.distance.toFixed(2)} km`;
+                                titleContainer.appendChild(distance);
+
+                                const address = $c('p');
+                                address.classList.add('mb-1');
+                                address.innerText = commerce.address;
+
+                                const phone = $c('small');
+                                phone.innerText = commerce.phone;
+
+                                item.appendChild(titleContainer);
+                                item.appendChild(address);
+                                item.appendChild(phone);
+                                item.setAttribute('role', 'button'); // hacer que se vea como un botón clickable
+
+                                item.addEventListener('click', () => {
+                                    closePopups();
+                                    map.setView([commerce.lat, commerce.lng], 20);
+                                    marker.openPopup();
+                                });
+
+                                group.appendChild(item);
+                            })
+
+                            map.setView([lat, lng], initialZoom); // lo añado yo para que si encuentra tambien me lleve al sitio
+                            $results.appendChild(group);
+
+                            markers.addTo(map);
+                            map.fitBounds(markers.getBounds());
+
                         })
                         .catch(error => {
                             $results.innerHTML = 'Ha ocurrido un error';

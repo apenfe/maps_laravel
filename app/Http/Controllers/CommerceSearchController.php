@@ -16,7 +16,12 @@ class CommerceSearchController extends Controller
             return view('commerce.search');
         }
 
-        $commerces = Commerce::all();
+        $lat = $request->input('lat');
+        $lng = $request->input('lng');
+        $radius = $request->input('radius', 5);
+        $types = array_filter(explode(',', $request->input('types'))) ?: null;
+
+        $commerces = Commerce::search($lat, $lng, $radius, $types)->get();
         return response()->json($commerces);
     }
 }
