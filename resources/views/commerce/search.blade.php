@@ -223,10 +223,7 @@
                 searchWithTimeout(500);
             });
 
-            //load data
-            const loadData = () => {
-                alert(1);
-            }
+
 
             // helper functions
             // clear results data
@@ -264,6 +261,115 @@
             const hideSpinner = id => {
                 const $spinner = $(id);
                 $spinner.classList.add('d-none');
+            }
+
+            // add market to map
+            const addMarker = commerce => {
+                const marker = L.marker([commerce.lat, commerce.lng]);
+
+                // custom id for open on click sidebar item
+                marker._leaflet_id = commerce.id;
+
+                const span = $c('span');
+                span.classList.add('fa-stack', 'fa-1x');
+
+                const icon = $c('i');
+                icon.classList.add('fas', 'fa-circle', 'fa-stack-2x');
+
+                const icon2 = $c('i');
+                icon2.classList.add('fas', ...icons[commerce.type].split(' '), 'fa-stack-1x', 'fa-inverse');
+
+                span.appendChild(icon);
+                span.appendChild(icon2);
+
+                const divIcon = L.divIcon({
+                    className: 'fa-stack fa-1x',
+                    html: span.outerHTML,
+                    iconSize: [20, 20],
+                    iconAnchor: [15, 10],
+                });
+
+                marker.setIcon(divIcon);
+
+                const title = $c('h5');
+                title.textContent = commerce.name;
+
+                const address = $c('p');
+                address.textContent = commerce.address;
+
+                const phone = $c('p');
+                phone.textContent = commerce.phone;
+
+                const popup = L.popup({ // propiedades opconales, ver documentacion
+                    closeButton: false,
+                    autoClose: false,
+                    closeOnEscapeKey: false,
+                    closeOnClick: false,
+                    className: 'popup',
+                }).setContent(`${title.outerHTML}${address.outerHTML}${phone.outerHTML}`);
+
+                marker.bindPopup(popup);
+
+                marker.on('click', () => {
+                    closePopups();
+                    marker.openPopup();
+                });
+
+                return marker;
+
+            }
+
+            //load data
+            const loadData = () => {
+                displaySpinner('#results-spinner');
+                displaySpinner('#map-spinner');
+
+                clearMarkers();
+                clearResults();
+
+                const address = $search.value;
+                const radius = $radius.value;
+                const $selectedTypes = $$('input[type="checkbox"]:checked');
+                const types = Array.from($selectedTypes).map($type => $type.value).join(','); // los juntamos con comas
+
+                L.Control.Geocoder.nominatim().geocode(address, function(results){
+                    if(!results.length){
+                        $results.innerHTML = 'No se han encontrado resultados';
+                        $summary.innerHTML = '0 resultados';
+                        hideSpinner('#results-spinner');
+                        hideSpinner('#map-spinner');
+                        return;
+                    }
+
+                    // get lat and lng
+                    const lat = results[0].center.lat;
+                    const lng = results[0].center.lng;
+
+                    // prepare url
+                    const url = `${searchUrl}?lat=${lat}&lng=${lng}&radius=${radius}&types=${types}`;
+
+                    // make ajax request to search url
+                    fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    })
+                    .then(response => response.json())
+                        .then(data => {
+                            console.log(data);
+                        })
+                        .catch(error => {
+                            $results.innerHTML = 'Ha ocurrido un error';
+                            $summary.innerHTML = '0 resultados';
+                            console.error(error);
+                        })
+                        .finally(() => {
+                            hideSpinner('#results-spinner');
+                            hideSpinner('#map-spinner');
+                        });
+                });
             }
 
         });
